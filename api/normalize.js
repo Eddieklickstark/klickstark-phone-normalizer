@@ -1,27 +1,29 @@
-import { parsePhoneNumber } from 'libphonenumber-js';
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 export default function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { phone, country = 'DE' } = req.body;
+  const { phone } = req.body
+  const defaultCountry = 'DE'
 
   try {
-    const number = parsePhoneNumber(phone, country);
-    if (!number || !number.isValid()) {
-      return res.status(400).json({ valid: false, error: 'Invalid phone number' });
+    let phoneNumber
+
+    // Wenn mit + oder 00 → kein Standardland
+    if (/^(\+|00)/.test(phone)) {
+      phoneNumber = parsePhoneNumberFromString(phone)
+    } else {
+      phoneNumber = parsePhoneNumberFromString(phone, defaultCountry)
+    }
+
+    if (!phoneNumber || !phoneNumber.isValid()) {
+      return res.status(400).json({ valid: false, reason: 'Invalid number' })
     }
 
     return res.status(200).json({
-      e164: number.format('E.164'),
-      national: number.formatNational(),
-      international: number.formatInternational(),
-      type: number.getType(),
-      country: number.country,
-      valid: true
-    });
+      e164: phoneNumber.number,
+      valid: true,
+      country: phoneNumber.country
+    })
   } catch (err) {
-    return res.status(500).json({ error: 'Parsing failed', details: err.message });
+    return res.status(500).json({ valid: false, error: err.message })
   }
 }

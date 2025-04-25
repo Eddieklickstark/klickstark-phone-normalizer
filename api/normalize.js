@@ -7,11 +7,17 @@ export default function handler(req, res) {
   try {
     let phoneNumber
 
-    // Wenn mit + oder 00 → kein Standardland
-    if (/^(\+|00)/.test(phone)) {
+    // Case 1: Nummer startet mit + oder 00 → direkt parse
+    if (/^\\+|^00/.test(phone)) {
       phoneNumber = parsePhoneNumberFromString(phone)
     } else {
-      phoneNumber = parsePhoneNumberFromString(phone, defaultCountry)
+      // Case 2: Nummer startet mit '49' → korrekt interpretieren
+      if (/^49[1-9]\\d+/.test(phone)) {
+        phoneNumber = parsePhoneNumberFromString('+' + phone)
+      } else {
+        // Case 3: lokale Nummer → default Country verwenden
+        phoneNumber = parsePhoneNumberFromString(phone, defaultCountry)
+      }
     }
 
     if (!phoneNumber || !phoneNumber.isValid()) {
@@ -23,6 +29,7 @@ export default function handler(req, res) {
       valid: true,
       country: phoneNumber.country
     })
+
   } catch (err) {
     return res.status(500).json({ valid: false, error: err.message })
   }

@@ -7,17 +7,19 @@ export default function handler(req, res) {
   try {
     let phoneNumber
 
-    // Case 1: Nummer startet mit + oder 00 → direkt parse
-    if (/^\\+|^00/.test(phone)) {
-      phoneNumber = parsePhoneNumberFromString(phone)
-    } else {
-      // Case 2: Nummer startet mit '49' → korrekt interpretieren
-      if (/^49[1-9]\\d+/.test(phone)) {
-        phoneNumber = parsePhoneNumberFromString('+' + phone)
-      } else {
-        // Case 3: lokale Nummer → default Country verwenden
-        phoneNumber = parsePhoneNumberFromString(phone, defaultCountry)
-      }
+    const cleaned = phone.replace(/[^0-9+]/g, '')
+
+    // Wenn mit + oder 00 beginnt → direkt verwenden
+    if (/^(\+|00)/.test(cleaned)) {
+      phoneNumber = parsePhoneNumberFromString(cleaned)
+    }
+    // Wenn mit internationalem Präfix OHNE + → ergänze +
+    else if (/^(49|41|43|352)\d{7,12}$/.test(cleaned)) {
+      phoneNumber = parsePhoneNumberFromString('+' + cleaned)
+    }
+    // Sonst: lokale Nummer → Defaultland verwenden
+    else {
+      phoneNumber = parsePhoneNumberFromString(cleaned, defaultCountry)
     }
 
     if (!phoneNumber || !phoneNumber.isValid()) {

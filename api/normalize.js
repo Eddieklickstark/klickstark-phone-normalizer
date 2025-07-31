@@ -2,30 +2,23 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 export default function handler(req, res) {
   const { phone } = req.body
-  const defaultCountry = 'DE'
+  const defaultCountry = 'DE' // Deutschland als Standard
 
   try {
-    let phoneNumber
+    // Schritt 1: Nummer bereinigen und normalisieren.
+    // - Ersetze eine führende "00" durch "+".
+    // - Entferne danach alle Zeichen außer Ziffern und dem Pluszeichen.
+    const normalizedPhone = phone.trim().replace(/^00/, '+').replace(/[^0-9\+]/g, '')
 
-    const cleaned = phone.replace(/[^0-9+]/g, '')
+    // Schritt 2: Parsen mit der normalisierten Nummer.
+    const phoneNumber = parsePhoneNumberFromString(normalizedPhone, defaultCountry)
 
-    // Wenn mit + oder 00 beginnt → direkt verwenden
-    if (/^(\+|00)/.test(cleaned)) {
-      phoneNumber = parsePhoneNumberFromString(cleaned)
-    }
-    // Wenn mit internationalem Präfix OHNE + → ergänze +
-    else if (/^(49|41|43|352)\d{7,12}$/.test(cleaned)) {
-      phoneNumber = parsePhoneNumberFromString('+' + cleaned)
-    }
-    // Sonst: lokale Nummer → Defaultland verwenden
-    else {
-      phoneNumber = parsePhoneNumberFromString(cleaned, defaultCountry)
-    }
-
+    // Schritt 3: Validieren.
     if (!phoneNumber || !phoneNumber.isValid()) {
-      return res.status(400).json({ valid: false, reason: 'Invalid number' })
+      return res.status(400).json({ valid: false, reason: 'Invalid or unparseable number' })
     }
 
+    // Schritt 4: Erfolgreiche Antwort zurückgeben.
     return res.status(200).json({
       e164: phoneNumber.number,
       valid: true,
